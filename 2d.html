@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Random Walk Simulation with Chart</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f9;
+    }
+
+    .graph_container {
+      display: flex;
+    }
+
+    .control-panel {
+      padding: 20px;
+      background-color: #ffffff;
+      border: 1px solid #cccccc;
+      box-sizing: border-box;
+      width: 265px;
+      flex-shrink: 0;
+      margin: 20px;
+      margin-top: 0px;
+
+    }
+
+    .container-result {
+      width: 100%;
+      max-height: 1080px;
+    }
+
+
+    .container {
+      display: flex;
+      margin-top: 20px;
+      padding: 0 20px;
+    }
+
+    .control-panel h1 {
+      text-align: center;
+      color: #333333;
+    }
+
+    .control-panel label {
+      display: block;
+      margin: 10px 0;
+      color: #555555;
+    }
+
+    .control-panel input[type="number"], .control-panel select {
+      width: calc(100% - 22px);
+      padding: 5px;
+      margin-top: 5px;
+      border: 1px solid #cccccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+
+    .control-panel input[type="checkbox"] {
+      margin-top: 10px;
+    }
+
+    .control-panel button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: #ffffff;
+      border: none;
+      width: 100%;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .control-panel button:hover {
+      background-color: #0056b3;
+    }
+
+    .content {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      margin-left: 20px;
+    }
+
+    #plotAndResults {
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+    }
+
+    #randomWalkPlot, .result-panel {
+      background-color: #ffffff;
+      border: 1px solid #cccccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+      margin-bottom: 20px;
+      width: auto;
+      height: auto;
+      min-height: 500px;
+    }
+
+    #randomWalkPlot {
+      flex-grow: 1;
+      margin-bottom: 20px;
+    }
+
+    .result-panel {
+      flex-grow: 1;
+    }
+
+    .result-panel p {
+      margin: 10px 0;
+      color: #333333;
+    }
+
+    #chartSelection {
+      margin-top: 20px;
+    }
+
+    #chartSelection label {
+      display: block;
+      margin: 10px 0;
+    }
+
+    #customChart {
+      width: 100%;
+      background-color: #ffffff;
+      border: 1px solid #cccccc;
+      border-radius: 4px;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .period-block {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin-top: 10px;
+      box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+      position: relative;
+      background: #fafafa;
+      border-radius: 5px;
+    }
+
+    .remove-period {
+      position: absolute;
+      top: 5px;
+      right: 10px;
+      cursor: pointer;
+      color: red;
+      transition: color 0.3s;
+    }
+
+    .remove-period:hover {
+      color: darkred;
+    }
+  </style>
+</head>
+<body>
+  <div class="control-panel" style="width: 100%">
+    <h1>Двумерное случайное блуждание на плоскости</h1>
+  </div>
+
+  <div class="container">
+    <div class="control-panel">
+      <h1> Настройка параметров</h1>
+      <button onclick="simulate()" >Запустить симуляцию</button>
+      <label>Показать тепловую карту: <input type="checkbox" id="showHeatmap"></label>
+      <label>Показать только расчет: <input type="checkbox" id="onlyCalculation"></label>
+      <label>Начальная точка X: <input type="number" id="startX" value="0"></label>
+      <label>Начальная точка Y: <input type="number" id="startY" value="0"></label>
+      <label>Целевая точка X: <input type="number" id="targetX" value="5"></label>
+      <label>Целевая точка Y: <input type="number" id="targetY" value="5"></label>
+      <label>Шаги (n): <input type="number" id="steps" value="10"></label>
+      <label>Вероятность движения влево: <input type="number" step="0.01" id="probLeft" value="0.25"></label>
+      <label>Вероятность движения вправо: <input type="number" step="0.01" id="probRight" value="0.25"></label>
+      <label>Вероятность движения вверх: <input type="number" step="0.01" id="probUp" value="0.25"></label>
+      <label>Вероятность движения вниз: <input type="number" step="0.01" id="probDown" value="0.25"></label>
+      <label>Вероятность остаться на месте: <input type="number" step="0.01" id="probStay" value="0"></label>
+      <label>Количество итераций симуляции: <input type="number" id="iterations" value="1000"></label>
+    </div>
+
+    <div class="container-result">
+      <div id="randomWalkPlot" class="chart-panel"></div>
+      <div class="result-panel" style="height: auto; padding: 20px;">
+        <p id="output"></p>
+        <div class="container-result">
+          <div class="graph_container">
+            <div id="customChart1" class="chart-panel" ></div>
+            <div id="customChart2" class="chart-panel"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="control-panel">
+      <label>Тип области:
+        <select id="areaType">
+          <option value="barrier">Барьер</option>
+          <option value="reflecting-barrier">Отражающий барьер</option>
+          <option value="targetzone">Целевая область</option>
+          <option value="probability-change">Изменение вероятности</option>
+        </select>
+      </label>
+      <label>Координаты первой точки X: <input type="number" id="areaX1" value="0"></label>
+      <label>Координаты первой точки Y: <input type="number" id="areaY1" value="0"></label>
+      <label>Координаты второй точки X: <input type="number" id="areaX2" value="2"></label>
+      <label>Координаты второй точки Y: <input type="number" id="areaY2" value="2"></label>
+      <div id="probabilityChangeFields" style="display: none;">
+        <label>Вероятность движения влево (область): <input type="number" step="0.01" id="probLeftArea" value="0.25"></label>
+        <label>Вероятность движения вправо (область): <input type="number" step="0.01" id="probRightArea" value="0.25"></label>
+        <label>Вероятность движения вверх (область): <input type="number" step="0.01" id="probUpArea" value="0.25"></label>
+        <label>Вероятность движения вниз (область): <input type="number" step="0.01" id="probDownArea" value="0.25"></label>
+        <label>Вероятность остаться на месте (область): <input type="number" step="0.01" id="probStayArea" value="0"></label>
+      </div>
+      <button onclick="addArea()">Добавить область</button>
+      <button onclick="clearAreas()">Очистить области</button>
+      <h3>Список областей</h3>
+      <ul id="areaList"></ul>
+    </div>
+  </div>
+
+  <script>
+    let areas = [];
+    let areaIdCounter = 0;
+
+    document.getElementById('areaType').addEventListener('change', (event) => {
+      const probabilityChangeFields = document.getElementById('probabilityChangeFields');
+      if (event.target.value === 'probability-change') {
+        probabilityChangeFields.style.display = 'block';
+      } else {
+        probabilityChangeFields.style.display = 'none';
+      }
+    });
+
+    function addArea() {
+      const areaType = document.getElementById('areaType').value;
+      const x1 = parseInt(document.getElementById('areaX1').value);
+      const y1 = parseInt(document.getElementById('areaY1').value);
+      const x2 = parseInt(document.getElementById('areaX2').value);
+      const y2 = parseInt(document.getElementById('areaY2').value);
+
+      let area;
+      if (areaType === 'probability-change') {
+        const probLeft = parseFloat(document.getElementById('probLeftArea').value);
+        const probRight = parseFloat(document.getElementById('probRightArea').value);
+        const probUp = parseFloat(document.getElementById('probUpArea').value);
+        const probDown = parseFloat(document.getElementById('probDownArea').value);
+        const probStay = parseFloat(document.getElementById('probStayArea').value);
+        area = { id: areaIdCounter++, type: areaType, x1, y1, x2, y2, probLeft, probRight, probUp, probDown, probStay };
+      } else {
+        area = { id: areaIdCounter++, type: areaType, x1, y1, x2, y2 };
+      }
+
+      areas.push(area);
+      displayAreas();
+    }
+
+    function clearAreas() {
+      areas = [];
+      displayAreas();
+    }
+
+    function removeArea(id) {
+      areas = areas.filter(area => area.id !== id);
+      displayAreas();
+    }
+
+    function displayAreas() {
+      const areaList = document.getElementById('areaList');
+      areaList.innerHTML = '';
+      areas.forEach(area => {
+        let areaText = `ID: ${area.id}, Тип: ${area.type}, Координаты: (${area.x1}, ${area.y1}) - (${area.x2}, ${area.y2})`;
+        if (area.type === 'probability-change') {
+          areaText += `, Вероятности: Л=${area.probLeft}, П=${area.probRight}, В=${area.probUp}, Н=${area.probDown}, О=${area.probStay}`;
+        }
+        const areaItem = document.createElement('li');
+        areaItem.className = 'area-item';
+        areaItem.innerHTML = areaText;
+        const removeButton = document.createElement('button');
+        removeButton.textContent = 'Удалить';
+        removeButton.onclick = () => removeArea(area.id);
+        areaItem.appendChild(removeButton);
+        areaList.appendChild(areaItem);
+      });
+    }
+
+   function simulate() {
+  const startX = parseInt(document.getElementById('startX').value);
+  const startY = parseInt(document.getElementById('startY').value);
+  const targetX = parseInt(document.getElementById('targetX').value);
+  const targetY = parseInt(document.getElementById('targetY').value);
+  const steps = parseInt(document.getElementById('steps').value);
+  const probLeft = parseFloat(document.getElementById('probLeft').value);
+  const probRight = parseFloat(document.getElementById('probRight').value);
+  const probUp = parseFloat(document.getElementById('probUp').value);
+  const probDown = parseFloat(document.getElementById('probDown').value);
+  const probStay = parseFloat(document.getElementById('probStay').value);
+  const iterations = parseInt(document.getElementById('iterations').value);
+  const showHeatmap = document.getElementById('showHeatmap').checked;
+  const onlyCalculation = document.getElementById('onlyCalculation').checked;
+
+  let successfulWithoutHitBarrier = 0;
+  let countSuccess = 0;
+  let notReachedCount = 0;
+  let hitBarrierCount = 0;
+  let bouncedOffBarrierCount = 0;
+  let timesToTarget = [];
+  let timesToFirstReturn = [];
+  let maxDeviationFromStart = 0;
+  let heatmapData = {};
+  let successfulTraces = [];
+  let unsuccessfulTraces = [];
+  let areaTraces = [];
+
+  // Create area traces
+  for (const area of areas) {
+    const trace = {
+      x: [area.x1, area.x2, area.x2, area.x1, area.x1],
+      y: [area.y1, area.y1, area.y2, area.y2, area.y1],
+      mode: 'lines',
+      fill: 'toself',
+      fillcolor: area.type === 'barrier' ? 'rgba(255, 165, 0, 0.5)' : (area.type === 'reflecting-barrier' ? 'rgba(173, 216, 230, 0.5)' : 'rgba(144, 238, 144, 0.5)'),
+      line: { color: area.type === 'barrier' ? 'red' : (area.type === 'reflecting-barrier' ? 'lightblue' : 'green') }
+    };
+    areaTraces.push(trace);
+  }
+
+  for (let i = 0; i < iterations; i++) {
+    let positionX = startX;
+    let positionY = startY;
+    let xValues = [startX];
+    let yValues = [startY];
+    let pathValid = true;
+    let reachedTarget = false;
+    let hitBarrier = false;
+    let stepsToTarget = -1;
+    let firstReturn = false;
+    let maxDeviation = 0;
+    let reflectedInIteration = false; // Флаг для отражений в итерации
+
+    for (let j = 0; j < steps; j++) {
+      let currentProbLeft = probLeft;
+      let currentProbRight = probRight;
+      let currentProbUp = probUp;
+      let currentProbDown = probDown;
+      let currentProbStay = probStay;
+
+      for (const area of areas) {
+        if (isInArea(positionX, positionY, area) && area.type === 'probability-change') {
+          currentProbLeft = area.probLeft;
+          currentProbRight = area.probRight;
+          currentProbUp = area.probUp;
+          currentProbDown = area.probDown;
+          currentProbStay = area.probStay;
+        }
+      }
+
+      const random = Math.random();
+      let newPositionX = positionX;
+      let newPositionY = positionY;
+
+      if (random < currentProbLeft) {
+        newPositionX--;
+      } else if (random < currentProbLeft + currentProbRight) {
+        newPositionX++;
+      } else if (random < currentProbLeft + currentProbRight + currentProbUp) {
+        newPositionY++;
+      } else if (random < currentProbLeft + currentProbRight + currentProbUp + currentProbDown) {
+        newPositionY--;
+      }
+
+      for (const area of areas) {
+        if (isInArea(newPositionX, newPositionY, area)) {
+          if (area.type === 'barrier') {
+            hitBarrierCount++;
+            hitBarrier = true;
+            pathValid = false;
+            break;
+          } else if (area.type === 'reflecting-barrier') {
+            if (newPositionX < area.x1) {
+              newPositionX = area.x1 + (area.x1 - newPositionX);
+            } else if (newPositionX > area.x2) {
+              newPositionX = area.x2 - (newPositionX - area.x2);
+            }
+            if (newPositionY < area.y1) {
+              newPositionY = area.y1 + (area.y1 - newPositionY);
+            } else if (newPositionY > area.y2) {
+              newPositionY = area.y2 - (newPositionY - area.y2);
+            }
+            reflectedInIteration = true;
+          } else if (area.type === 'target') {
+            stepsToTarget = j + 1;
+            reachedTarget = true;
+            pathValid = true;
+            break;
+          }
+        }
+      }
+
+      if (!pathValid) {
+        break;
+      }
+
+      positionX = newPositionX;
+      positionY = newPositionY;
+      xValues.push(positionX);
+      yValues.push(positionY);
+
+      maxDeviation = Math.max(maxDeviation, Math.abs(positionX - startX), Math.abs(positionY - startY));
+
+      if (!firstReturn && positionX === startX && positionY === startY) {
+        timesToFirstReturn.push(j + 1);
+        firstReturn = true;
+      }
+
+      if (reachedTarget) break;
+      if (positionX === targetX && positionY === targetY) {
+        stepsToTarget = j + 1;
+        reachedTarget = true;
+        countSuccess++;
+        break;
+      }
+
+      // Обновление данных для тепловой карты
+      const key = `${positionX},${positionY}`;
+      if (heatmapData[key]) {
+        heatmapData[key]++;
+      } else {
+        heatmapData[key] = 1;
+      }
+    }
+
+    if (!reachedTarget) {
+      notReachedCount++;
+    }
+
+    if (stepsToTarget !== -1) {
+      timesToTarget.push(stepsToTarget);
+    }
+
+    maxDeviationFromStart = Math.max(maxDeviationFromStart, maxDeviation);
+
+    if (reflectedInIteration) {
+      bouncedOffBarrierCount++;
+    }
+
+    if (pathValid && !hitBarrier) {
+      successfulWithoutHitBarrier++;
+    }
+
+    if (pathValid && !showHeatmap && !onlyCalculation) {
+      successfulTraces.push({
+        x: xValues,
+        y: yValues,
+        mode: 'lines',
+        line: { color: 'green' }
+      });
+    } else if (!pathValid && !showHeatmap && !onlyCalculation) {
+      unsuccessfulTraces.push({
+        x: xValues,
+        y: yValues,
+        mode: 'lines',
+        line: { color: 'gray' }
+      });
+    }
+  }
+
+  // Calculation results
+  const meanTimeToTarget = timesToTarget.reduce((a, b) => a + b, 0) / timesToTarget.length;
+  const minTimeToTarget = Math.min(...timesToTarget);
+  const maxTimeToTarget = Math.max(...timesToTarget);
+  const varianceTimeToTarget = timesToTarget.map(time => Math.pow(time - meanTimeToTarget, 2)).reduce((a, b) => a + b, 0) / timesToTarget.length;
+  const stdDeviationTimeToTarget = Math.sqrt(varianceTimeToTarget);
+  const coefficientOfVariation = stdDeviationTimeToTarget / meanTimeToTarget;
+  const probability = countSuccess / iterations;
+  const probabilityMinTime = timesToTarget.filter(time => time === minTimeToTarget).length / timesToTarget.length;
+  const probabilityMaxTime = timesToTarget.filter(time => time === maxTimeToTarget).length / timesToTarget.length;
+  const probabilityFirstReturn = timesToFirstReturn.length / iterations;
+  const probabilityNoHitBarrier = successfulWithoutHitBarrier / iterations;
+
+  document.getElementById('output').innerHTML =
+    'Среднее время достижения цели: ' + meanTimeToTarget.toFixed(4) + ' шагов.<br>' +
+    'Минимальное время достижения цели: ' + minTimeToTarget + ' шагов.<br>' +
+    'Максимальное время достижения цели: ' + maxTimeToTarget + ' шагов.<br>' +
+    'Дисперсия: ' + varianceTimeToTarget.toFixed(4) + '.<br>' +
+    'Стандартное отклонение: ' + stdDeviationTimeToTarget.toFixed(4) + '.<br>' +
+    'Коэффициент вариации: ' + coefficientOfVariation.toFixed(4) + '.<br>' +
+    'Вероятность достичь цели: ' + (probability).toFixed(4) + '.<br>' +
+    'Количество симуляций, достигших цели: ' + countSuccess + '.<br>' +
+    'Количество симуляций, не достигших цели: ' + notReachedCount + '.<br>' +
+    'Количество симуляций, разбившихся об барьеры: ' + hitBarrierCount + '.<br>' +
+    'Количество итераций, оттолкнувшихся от барьера: ' + bouncedOffBarrierCount + '.<br>' +
+    'Вероятность не разбиться об барьеры: ' + (probabilityNoHitBarrier).toFixed(4) + '.<br>' +
+    'Вероятность достижения цели за минимальное время: ' + (probabilityMinTime).toFixed(4) + '.<br>' +
+    'Вероятность достижения цели за максимальное время: ' + (probabilityMaxTime).toFixed(4) + '.<br>' +
+    'Вероятность пересечения начальной точки: ' + (probabilityFirstReturn).toFixed(4) + '%.<br>' +
+    'Максимальное отклонение от начальной точки: ' + maxDeviationFromStart + '.<br>';
+
+  const targetHitProbability = (countSuccess / iterations) * 100;
+  let allTraces = areaTraces.concat(unsuccessfulTraces).concat(successfulTraces);
+
+  // Создание тепловой карты, если она включена
+  if (showHeatmap) {
+    const heatmapX = [];
+    const heatmapY = [];
+    const heatmapZ = [];
+
+    for (const key in heatmapData) {
+      const [x, y] = key.split(',').map(Number);
+      heatmapX.push(x);
+      heatmapY.push(y);
+      heatmapZ.push(heatmapData[key]);
+    }
+
+    const heatmapTrace = {
+      x: heatmapX,
+      y: heatmapY,
+      z: heatmapZ,
+      type: 'heatmap',
+      colorscale: 'Viridis'
+    };
+
+    allTraces.push(heatmapTrace);
+  }
+
+  if (!onlyCalculation) {
+    Plotly.newPlot('randomWalkPlot', allTraces, { title: `Random Walks (${iterations} Iterations, Target Hit Probability: ${targetHitProbability.toFixed(2)}%)` });
+  }
+}
+
+function isInArea(x, y, area) {
+  return x >= Math.min(area.x1, area.x2) && x <= Math.max(area.x1, area.x2) &&
+         y >= Math.min(area.y1, area.y2) && y <= Math.max(area.y1, area.y2);
+}
+
+function isOnBoundary(x, y, area) {
+  return (x === area.x1 || x === area.x2) && (y >= area.y1 && y <= area.y2) ||
+         (y === area.y1 || y === area.y2) && (x >= area.x1 && x <= area.x2);
+}
+  </script>
+</body>
+</html>

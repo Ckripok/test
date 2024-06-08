@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8">
+    <title>Random Walk Simulation with Chart</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f4f4f9;
+      }
+
+      .graph_container {
+        display: flex;
+      }
+
+      .control-panel {
+        padding: 20px;
+        background-color: #ffffff;
+        border: 1px solid #cccccc;
+        box-sizing: border-box;
+        width: 265px;
+        flex-shrink: 0;
+        margin: 20px;
+        margin-top: 0px;
+
+      }
+
+      .container-result {
+        width: 100%;
+        max-height: 1080px;
+      }
+
+
+      .container {
+        display: flex;
+        margin-top: 20px;
+        padding: 0 20px;
+      }
+
+      .control-panel h1 {
+        text-align: center;
+        color: #333333;
+      }
+
+      .control-panel label {
+        display: block;
+        margin: 10px 0;
+        color: #555555;
+      }
+
+      .control-panel input[type="number"], .control-panel select {
+        width: calc(100% - 22px);
+        padding: 5px;
+        margin-top: 5px;
+        border: 1px solid #cccccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+      }
+
+      .control-panel input[type="checkbox"] {
+        margin-top: 10px;
+      }
+
+      .control-panel button {
+        margin-top: 20px;
+        padding: 10px 20px;
+        background-color: #007bff;
+        color: #ffffff;
+        border: none;
+        width: 100%;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      .control-panel button:hover {
+        background-color: #0056b3;
+      }
+
+      .content {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        margin-left: 20px;
+      }
+
+      #plotAndResults {
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+      }
+
+      #randomWalkPlot, .result-panel {
+        background-color: #ffffff;
+        border: 1px solid #cccccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+        margin-bottom: 20px;
+        width: auto;
+        height: auto;
+        min-height: 500px;
+      }
+
+      #randomWalkPlot {
+        flex-grow: 1;
+        margin-bottom: 20px;
+      }
+
+      .result-panel {
+        flex-grow: 1;
+      }
+
+      .result-panel p {
+        margin: 10px 0;
+        color: #333333;
+      }
+
+      #chartSelection {
+        margin-top: 20px;
+      }
+
+      #chartSelection label {
+        display: block;
+        margin: 10px 0;
+      }
+
+      #customChart {
+        width: 100%;
+        background-color: #ffffff;
+        border: 1px solid #cccccc;
+        border-radius: 4px;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+      .period-block {
+        border: 1px solid #ccc;
+        padding: 10px;
+        margin-top: 10px;
+        box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+        position: relative;
+        background: #fafafa;
+        border-radius: 5px;
+      }
+
+      .remove-period {
+        position: absolute;
+        top: 5px;
+        right: 10px;
+        cursor: pointer;
+        color: red;
+        transition: color 0.3s;
+      }
+
+      .remove-period:hover {
+        color: darkred;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="control-panel" style="width: 100%;  width: 100%;margin: 0px;">
+      <h1>Одномерное случайное блуждание с графиком</h1>
+    </div>
+
+    <div class="container">
+      <div class="control-panel">
+         <h1> Настройка параметров</h1>
+        <button onclick="simulate()" >Запустить симуляцию</button>
+        <label>Показать тепловую карту: <input type="checkbox" id="showHeatmap"></label>
+        <label>Показать только расчет: <input type="checkbox" id="onlyCalculation"></label>
+        <hr>
+        <label>Начальная точка: <input type="number" id="startX" value="0"></label>
+        <label>Целевая точка: <input type="number" id="targetX" value="5"></label>
+        <label for="deferTargetCheckbox">Не регистрировать до <input type="checkbox" id="deferTargetCheckbox" onchange="toggleDeferTarget()"> </label>
+        <div id="deferTargetStep" style="display: none;">
+          <label>Шаг: <input type="number" id="deferStep" value="1"></label>
+        </div>
+        <label>Шаги (n): <input type="number" id="steps" value="10"></label>
+        <label>Вероятность движения влево: <input type="number" step="0.01" id="probLeft" value="0.5"></label>
+        <label>Вероятность движения вправо: <input type="number" step="0.01" id="probRight" value="0.5"></label>
+        <label>Вероятность остаться на месте: <input type="number" step="0.01" id="probStay" value="0"></label>
+        <label>Длина шага влево: <input type="number" id="stepLeft" value="1"></label>
+        <label>Длина шага вправо: <input type="number" id="stepRight" value="1"></label>
+        <label>Количество итераций симуляции: <input type="number" id="iterations" value="1000"></label>
+      </div>
+
+      <div class = "container-result">
+        <div id="randomWalkPlot" class="chart-panel"></div>
+        <div class="result-panel" style="height: auto; padding: 20px;">
+          <p id="output"></p>
+          <div class="container-result">
+            <div class="graph_container">
+              <div id="customChart1" class="chart-panel" ></div>
+              <div id="customChart2" class="chart-panel"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="control-panel">
+        <h1> Настройка среды </h1>
+        <hr>
+        <label for="positiveBarrier">Положительный барьер:</label>
+<input type="number" id="positiveBarrier" name="positiveBarrier" step="1">
+<select id="positiveBarrierType" name="positiveBarrierType">
+  <option value="reflecting">Отражающий</option>
+  <option value="absorbing">Поглощающий</option>
+</select>
+<br>
+<label for="negativeBarrier">Отрицательный барьер:</label>
+<input type="number" id="negativeBarrier" name="negativeBarrier" step="1">
+<select id="negativeBarrierType" name="negativeBarrierType">
+  <option value="reflecting">Отражающий</option>
+  <option value="absorbing">Поглощающий</option>
+</select>
+<br>
+        <hr>
+        <label>От: <input type="number" id="periodFrom"></label>
+        <label>До: <input type="number" id="periodTo"></label>
+        <label>Коэффициент изменения вероятности: <input type="number" step="0.01" id="probChange"></label>
+        <button onclick="addPeriod()">Добавить период</button>
+        <div id="periods"></div>
+
+      </div>
+    </div>
+    <script>
+      let periods = [];
+      let probHistory = [];
+      let simulationData = {
+        graph: {
+          stepsToTarget: [],
+          firstReturn: []
+        },
+        calculation: {
+          stepsToTarget: [],
+          firstReturn: [],
+          countSuccess: 0,
+          hitBarrierCount: 0,
+          bouncedOffBarrierCount: 0,
+          maxDeviationFromStart: 0
+        }
+      };
+
+      function toggleDeferTarget() {
+        const deferTargetStep = document.getElementById('deferTargetStep');
+        if (document.getElementById('deferTargetCheckbox').checked) {
+          deferTargetStep.style.display = 'block';
+        } else {
+          deferTargetStep.style.display = 'none';
+        }
+      }
+
+      function addPeriod() {
+        const from = parseInt(document.getElementById('periodFrom').value);
+        const to = parseInt(document.getElementById('periodTo').value);
+        const change = parseFloat(document.getElementById('probChange').value);
+        const periodId = periods.length;
+        periods.push({ id: periodId, from, to, change });
+
+        const periodDiv = document.getElementById('periods');
+        const periodBlock = document.createElement('div');
+        periodBlock.className = 'period-block';
+        periodBlock.id = `period-${periodId}`;
+        periodBlock.innerHTML = `
+                <span class="remove-period" onclick="removePeriod(${periodId})">×</span>
+                <p>От: ${from}, До: ${to}, Коэффициент: ${change}</p>
+            `;
+        periodDiv.appendChild(periodBlock);
+      }
+
+      function removePeriod(id) {
+        periods = periods.filter(period => period.id !== id);
+        document.getElementById(`period-${id}`).remove();
+      }
+function simulate() {
+    const startX = parseInt(document.getElementById('startX').value);
+    const targetX = parseInt(document.getElementById('targetX').value);
+    const steps = parseInt(document.getElementById('steps').value);
+    const initialProbLeft = parseFloat(document.getElementById('probLeft').value);
+    const initialProbRight = parseFloat(document.getElementById('probRight').value);
+    const initialProbStay = parseFloat(document.getElementById('probStay').value);
+    const stepLeft = parseInt(document.getElementById('stepLeft').value);
+    const stepRight = parseInt(document.getElementById('stepRight').value);
+    const positiveBarrier = document.getElementById('positiveBarrier').value ? parseInt(document.getElementById('positiveBarrier').value) : null;
+    const negativeBarrier = document.getElementById('negativeBarrier').value ? parseInt(document.getElementById('negativeBarrier').value) : null;
+    const positiveBarrierType = document.getElementById('positiveBarrierType').value;
+    const negativeBarrierType = document.getElementById('negativeBarrierType').value;
+    const iterations = parseInt(document.getElementById('iterations').value);
+    const deferTarget = document.getElementById('deferTargetCheckbox').checked;
+    const deferStep = deferTarget ? parseInt(document.getElementById('deferStep').value) : 0;
+    const showHeatmap = document.getElementById('showHeatmap').checked;
+    const onlyCalculation = document.getElementById('onlyCalculation').checked;
+
+    let data = [];
+    let countSuccess = 0;
+    let countCrossTarget = 0;
+    let countReflectedIterations = 0;
+    let shapes = [];
+    let heatmapData = {};
+    probHistory = [];
+    simulationData.graph.stepsToTarget = [];
+    simulationData.graph.firstReturn = [];
+    simulationData.calculation.stepsToTarget = [];
+    simulationData.calculation.firstReturn = [];
+    simulationData.calculation.countSuccess = 0;
+    simulationData.calculation.hitBarrierCount = 0;
+    simulationData.calculation.bouncedOffBarrierCount = 0;
+    simulationData.calculation.maxDeviationFromStart = 0;
+
+    for (let i = 0; i < iterations; i++) {
+    let probLeft = initialProbLeft;
+    let probRight = initialProbRight;
+    let probStay = initialProbStay;
+    let position = startX;
+    let x = [0];
+    let y = [startX];
+    let hitTarget = false;
+    let reflected = false; // Флаг для отражений
+    let probArray = [probRight];
+    let firstReturn = -1;
+    let j;
+
+    for (j = 0; j < steps; j++) {
+        // Apply period probability changes
+        for (let period of periods) {
+            if (j >= period.from && j <= period.to) {
+                probRight += period.change;
+                probLeft = 1 - probRight - probStay;
+                if (probRight < 0) probRight = 0;
+                if (probRight > 1) probRight = 1;
+                if (probLeft < 0) probLeft = 0;
+                if (probLeft > 1) probLeft = 1;
+            }
+        }
+
+        let previousPosition = position;
+        const random = Math.random();
+        if (random < probRight) {
+            position += stepRight;
+        } else if (random < probRight + probLeft) {
+            position -= stepLeft;
+        }
+
+        // Handling barriers
+        if (positiveBarrier !== null && position >= positiveBarrier) {
+            if (positiveBarrierType === "reflecting") {
+                position = positiveBarrier - (position - positiveBarrier); // Reflect back
+                reflected = true;
+            } else if (positiveBarrierType === "absorbing") {
+                simulationData.calculation.hitBarrierCount++;
+                break;
+            }
+        }
+
+        if (negativeBarrier !== null && position <= negativeBarrier) {
+            if (negativeBarrierType === "reflecting") {
+                position = negativeBarrier + (negativeBarrier - position); // Reflect back
+                reflected = true;
+            } else if (negativeBarrierType === "absorbing") {
+                simulationData.calculation.hitBarrierCount++;
+                break;
+            }
+        }
+
+        // Check if the target is crossed and defer condition is met
+        if (j >= deferStep && ((previousPosition < targetX && position >= targetX) || (previousPosition > targetX && position <= targetX))) {
+            hitTarget = true;
+            countCrossTarget++;
+            simulationData.graph.stepsToTarget.push(j + 1);
+            simulationData.calculation.stepsToTarget.push(j + 1);
+            break;
+        }
+
+        // Check for first return to start
+        if (position === startX && firstReturn === -1) {
+            firstReturn = j + 1;
+            simulationData.graph.firstReturn.push(firstReturn);
+            simulationData.calculation.firstReturn.push(firstReturn);
+        }
+
+        x.push(j + 1);
+        y.push(position);
+        probArray.push(probRight);  // Store probability of current step
+
+        // Обновление данных для тепловой карты
+        const key = `${j + 1},${position}`;
+        if (heatmapData[key]) {
+            heatmapData[key]++;
+        } else {
+            heatmapData[key] = 1;
+        }
+    }
+    // Ensure the path reaches the target
+    if (hitTarget) {
+        x.push(j + 1); // Ensure the x-coordinate is added
+        y.push(targetX); // Ensure the y-coordinate reaches the target
+        countSuccess++;
+    } else {
+        x.push(j + 1);
+        y.push(position);
+    }
+
+    if (reflected) {
+        simulationData.calculation.bouncedOffBarrierCount++; // Count iterations with reflection
+    }
+
+    probHistory.push(probArray);  // Store probability array for this iteration
+    let color = hitTarget ? 'green' : 'gray';
+    if (!showHeatmap && !onlyCalculation) { // Условие для исключения всех графиков, если включена тепловая карта или включен только расчет
+        data.push({
+            x: x,
+            y: y,
+            mode: 'lines+markers',
+            line: { color: color },
+            marker: { size: y.map((pos, index) => (pos === targetX && index >= deferStep) ? 10 : 2), color: y.map((pos, index) => (pos === targetX && index >= deferStep) ? 'red' : color) }
+        });
+    }
+}
+
+    // Create shaded areas for periods
+    for (let period of periods) {
+        shapes.push({
+            type: 'rect',
+            xref: 'x',
+            yref: 'paper',
+            x0: period.from,
+            x1: period.to,
+            y0: 0,
+            y1: 1,
+            fillcolor: 'rgba(255, 165, 0, 0.2)',
+            line: { width: 0 }
+        });
+    }
+
+    // Add barriers to the graph
+    if (positiveBarrier !== null) {
+        shapes.push({
+            type: 'line',
+            x0: 0,
+            x1: steps,
+            y0: positiveBarrier,
+            y1: positiveBarrier,
+            line: {
+                color: positiveBarrierType === "reflecting" ? 'pink' : 'red',
+                width: 2,
+                dash: 'dashdot'
+            }
+        });
+    }
+
+    if (negativeBarrier !== null) {
+        shapes.push({
+            type: 'line',
+            x0: 0,
+            x1: steps,
+            y0: negativeBarrier,
+            y1: negativeBarrier,
+            line: {
+                color: negativeBarrierType === "reflecting" ? 'pink' : 'red',
+                width: 2,
+                dash: 'dashdot'
+            }
+        });
+    }
+
+    // Создание тепловой карты, если она включена
+    if (showHeatmap) {
+        const heatmapX = [];
+        const heatmapY = [];
+        const heatmapZ = [];
+
+        for (const key in heatmapData) {
+            const [x, y] = key.split(',').map(Number);
+            heatmapX.push(x);
+            heatmapY.push(y);
+            heatmapZ.push(heatmapData[key]);
+        }
+
+        const heatmapTrace = {
+            x: heatmapX,
+            y: heatmapY,
+            z: heatmapZ,
+            type: 'heatmap',
+            colorscale: 'Viridis'
+        };
+
+        data.push(heatmapTrace);
+    }
+
+    const probabilityOfCrossTarget = (countCrossTarget / iterations * 100).toFixed(4);
+
+    if (!onlyCalculation) {
+        Plotly.newPlot('randomWalkPlot', data, {
+            title: `Случайное одномерное блуждание`,
+            shapes: shapes,
+            xaxis: {
+                title: 'Шаги'
+            },
+            yaxis: {
+                title: 'Позиция'
+            },
+            hovermode: 'closest' // Добавление интерактивных всплывающих подсказок
+        });
+    }
+
+    drawCharts();
+
+    // Calculation results
+    const meanTimeToTarget = simulationData.calculation.stepsToTarget.reduce((a, b) => a + b, 0) / simulationData.calculation.stepsToTarget.length;
+    const minTimeToTarget = Math.min(...simulationData.calculation.stepsToTarget);
+    const maxTimeToTarget = Math.max(...simulationData.calculation.stepsToTarget);
+    const varianceTimeToTarget = simulationData.calculation.stepsToTarget.map(time => Math.pow(time - meanTimeToTarget, 2)).reduce((a, b) => a + b, 0) / simulationData.calculation.stepsToTarget.length;
+    const stdDeviationTimeToTarget = Math.sqrt(varianceTimeToTarget);
+    const coefficientOfVariation = stdDeviationTimeToTarget / meanTimeToTarget;
+    const probability = countSuccess / iterations;
+    const notReachedCount = iterations - countSuccess;
+
+    const countMinTime = simulationData.calculation.stepsToTarget.filter(time => time === minTimeToTarget).length;
+    const countMaxTime = simulationData.calculation.stepsToTarget.filter(time => time === maxTimeToTarget).length;
+    const probabilityMinTime = countMinTime / iterations;
+    const probabilityMaxTime = countMaxTime / iterations;
+    const probabilityFirstReturn = simulationData.calculation.firstReturn.length / iterations;
+
+    document.getElementById('output').innerHTML = `
+        <h1>Статистика блуждания</h1>
+        <div style="display: flex">
+        <div style="width: 50%">
+        <table style="width: 100%; border-collapse: collapse;">
+                   <tr>
+                <td style="padding: 8px; border: 1px solid #cccccc;">Количество симуляций, достигших цели:</td>
+                <td style="padding: 8px; border: 1px solid #cccccc;">${countSuccess}</td>
+          </tr>
+            <tr>
+                <td style="padding: 8px; border: 1px solid #cccccc;">Количество симуляций, не достигших цели:</td>
+                <td style="padding: 8px; border: 1px solid #cccccc;">${notReachedCount}</td>
+          </tr>
+            <tr>
+                <td style="padding: 8px; border: 1px solid #cccccc;">Среднее время достижения цели:</td>
+                <td style="padding: 8px; border: 1px solid #cccccc;">${meanTimeToTarget.toFixed(4)} ш.</td>
+          </tr>
+            <tr>
+                <td style="padding: 8px; border: 1px solid #cccccc;">Минимальное время достижения цели:</td>
+                <td style="padding: 8px; border: 1px solid #cccccc;">${minTimeToTarget} ш.</td>
+          </tr>
+            <tr>
+                <td style="padding: 8px; border: 1px solid #cccccc;">Максимальное время достижения цели:</td>
+                <td style="padding: 8px; border: 1px solid #cccccc;">${maxTimeToTarget} ш.</td>
+          </tr>
+            <tr>
+                <td style="padding: 8px; border: 1px solid #cccccc;">Дисперсия:</td>
+                <td style="padding: 8px; border: 1px solid #cccccc;">${varianceTimeToTarget.toFixed(4)}</td>
+          </tr>
+            <tr>
+                <td style="padding: 8px; border: 1px solid #cccccc;">Стандартное отклонение:</td>
+                <td style="padding: 8px; border: 1px solid #cccccc;">${stdDeviationTimeToTarget.toFixed(4)}</td>
+          </tr>
+            <tr>
+                <td style="padding: 8px; border: 1px solid #cccccc;">Коэффициент вариации:</td>
+                <td style="padding: 8px; border: 1px solid #cccccc;">${coefficientOfVariation.toFixed(4)}</td>
+          </tr>
+          </table>
+          </div>
+          <div style="width: 50%">
+          <table style="width: 100%; border-collapse: collapse;">
+
+            <tr>
+                <td style="padding: 8px; border: 1px solid #cccccc;">Количество симуляций, разбившихся об барьеры:</td>
+                <td style="padding: 8px; border: 1px solid #cccccc;">${simulationData.calculation.hitBarrierCount}</td>
+          </tr>
+            <tr>
+                <td style="padding: 8px; border: 1px solid #cccccc;">Количество симуляций, оттолкнувшихся от барьера:</td>
+                <td style="padding: 8px; border: 1px solid #cccccc;">${simulationData.calculation.bouncedOffBarrierCount}</td>
+          </tr>
+                      <tr>
+                <td style="padding: 8px; border: 1px solid #cccccc;">Вероятность достичь цели:</td>
+                <td style="padding: 8px; border: 1px solid #cccccc;">${(probability).toFixed(4)}</td>
+          </tr>
+            <tr>
+                <td style="padding: 8px; border: 1px solid #cccccc;">Вероятность достижения цели за минимальное время:</td>
+                <td style="padding: 8px; border: 1px solid #cccccc;">${(probabilityMinTime).toFixed(4)}</td>
+          </tr>
+            <tr>
+                <td style="padding: 8px; border: 1px solid #cccccc;">Вероятность достижения цели за максимальное время:</td>
+                <td style="padding: 8px; border: 1px solid #cccccc;">${(probabilityMaxTime).toFixed(4)}</td>
+          </tr>
+            <tr>
+                <td style="padding: 8px; border: 1px solid #cccccc;">Вероятность пересечения начальной точки:</td>
+                <td style="padding: 8px; border: 1px solid #cccccc;">${(probabilityFirstReturn).toFixed(4)}</td>
+          </tr>
+          <tr>
+                <td style="padding: 8px; border: 1px solid #cccccc;">Вероятность достижения цели ровно за n-шагов:</td>
+                <td style="padding: 8px; border: 1px solid #cccccc;">${(simulationData.calculation.stepsToTarget.filter(time => time === steps).length / iterations).toFixed(4)}</td>
+          </tr>
+            <tr>
+                <td style="padding: 8px; border: 1px solid #cccccc;">Максимальное отклонение от начальной точки:</td>
+                <td style="padding: 8px; border: 1px solid #cccccc;">${simulationData.calculation.maxDeviationFromStart}</td>
+          </tr>
+          </table>
+          </div>
+          </div>`;
+}
+
+function drawCharts() {
+    const stepsToTargetData = {
+        x: simulationData.graph.stepsToTarget,
+        type: 'histogram',
+        autobinx: false,
+        xbins: {
+            start: Math.min(...simulationData.graph.stepsToTarget),
+            end: Math.max(...simulationData.graph.stepsToTarget),
+            size: 1
+        }
+    };
+
+    const firstReturnData = {
+        x: simulationData.graph.firstReturn,
+        type: 'histogram',
+        autobinx: false,
+        xbins: {
+            start: Math.min(...simulationData.graph.firstReturn),
+            end: Math.max(...simulationData.graph.firstReturn),
+            size: 1
+        }
+    };
+
+    const layout1 = {
+        title: 'Количество шагов до цели',
+        xaxis: { title: 'Шаги' },
+        yaxis: { title: 'Количество' },
+        width: 600,
+        height: 300
+    };
+
+    const layout2 = {
+        title: 'Время до первого возвращения',
+        xaxis: { title: 'Шаги' },
+        yaxis: { title: 'Количество' },
+        width: 600,
+        height: 300
+    };
+
+    Plotly.newPlot('customChart1', [stepsToTargetData], layout1);
+    Plotly.newPlot('customChart2', [firstReturnData], layout2);
+}
+    </script>
+  </body>
+</html>
